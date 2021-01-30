@@ -13,6 +13,9 @@ from win32serviceutil import ServiceFramework, HandleCommandLine
 from logging.handlers import NTEventLogHandler
 from threading import Thread
 
+# TODO: Dynamically determine this.
+CONFIG_PATH = 'c:\\smtputt-master\\src\\smtputt.ini'
+
 class SMTPuttService( ServiceFramework ):
 
     _svc_name_ = 'SMTPutt'
@@ -54,19 +57,19 @@ class SMTPuttService( ServiceFramework ):
     def SvcDoRun( self ):
         logger = logging.getLogger( 'smtpcache.svc' )
 
-        logger.info( 'using {} as config...'.format(
-            os.path.join( os.getcwd(), 'smtputt.ini' ) ) )
+        logger.info( 'using {} as config...'.format( CONFIG_PATH ) )
 
         config = configparser.ConfigParser()
-        config.read( os.path.join( os.getcwd(), 'smtputt.ini' ) )
+        config.read( CONFIG_PATH )
         cfg_dict = dict( config.items( 'forwarder' ) )
 
         self.smtp_cache = SMTPCache( **cfg_dict )
 
         self.ReportServiceStatus( win32service.SERVICE_RUNNING )
 
-        logger.info( 'service intialized; sending mail to {} as {}; beginning loop'.format(
-            config['server'], config['from_addr'] ) )
+        logger.info(
+            'service intialized; sending mail to {} as {}; beginning loop'.format(
+            config['forwarder']['remoteserver'], config['forwarder']['fromaddress'] ) )
         
         #self.smtp_thread = Thread( target=asyncore.loop, kwargs={'timeout': 1} )
         #self.smtp_thread.start()
