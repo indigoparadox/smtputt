@@ -53,12 +53,15 @@ class SMTPuttService( ServiceFramework ):
 
     def SvcDoRun( self ):
         logger = logging.getLogger( 'smtpcache.svc' )
-        config = {}
-        with open( os.path.join( 'c:\\', 'program files', 'smtputt', 'src', 'config.json' ), 'r' ) as config_file:
-            config = json.loads( config_file.read() )
 
-        self.smtp_cache = SMTPCache( (config['listen'], config['listen_port']),
-            config['server'], config['port'], config['username'], config['password'], config['from_addr'] )
+        logger.info( 'using {} as config...'.format(
+            os.path.join( os.getcwd(), 'smtputt.ini' ) ) )
+
+        config = configparser.ConfigParser()
+        config.read( os.path.join( os.getcwd(), 'smtputt.ini' ) )
+        cfg_dict = dict( config.items( 'forwarder' ) )
+
+        self.smtp_cache = SMTPCache( **cfg_dict )
 
         self.ReportServiceStatus( win32service.SERVICE_RUNNING )
 
