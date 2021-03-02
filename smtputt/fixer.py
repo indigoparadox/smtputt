@@ -1,14 +1,13 @@
 
 
 from email.utils import formatdate
-from smtputt.server import SMTPuttServer
 
 class SMTPuttFixer( object ):
 
     def __init__( self, **kwargs ):
         self.from_addr = kwargs['fromaddress'] if 'fromaddress' in kwargs \
             else None
-        self.server : SMTPuttServer
+        self.server = None
 
     def fix_message_from( self, msg ):
         self.logger.info( 'replacing from addres' )
@@ -26,4 +25,4 @@ class SMTPuttFixer( object ):
             msg = self.fix_message_from( msg )
 
         if self.server and self.server.relay:
-            self.server.relay.send_mail( msg )
+            self.server.relay.send_email( msg )

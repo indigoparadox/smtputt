@@ -1,2 +1,4 @@
 env
 config.json
+__pycache__
+smtputt.ini

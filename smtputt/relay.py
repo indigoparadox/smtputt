@@ -15,7 +15,7 @@ class SMTPuttRelay( object ):
         self.out_password = kwargs['remotepassword'] if 'remotepassword' \
             in kwargs else None
 
-    def send_mail( self, msg ):
+    def send_email( self, msg ):
         with SMTP_SSL( self.out_server, self.out_port ) as smtp:
             smtp.login( self.out_user, self.out_password )
             try:
