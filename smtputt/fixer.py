@@ -1,5 +1,6 @@
 
-
+from email.message import EmailMessage
+import logging
 from email.utils import formatdate
 
 class SMTPuttFixer( object ):
@@ -7,6 +8,7 @@ class SMTPuttFixer( object ):
     def __init__( self, **kwargs ):
         self.from_addr = kwargs['fromaddress'] if 'fromaddress' in kwargs \
             else None
+        self.logger = logging.getLogger( 'fixer' )
         self.server = None
 
     def fix_message_from( self, msg ):
@@ -19,10 +21,13 @@ class SMTPuttFixer( object ):
         msg.add_header( 'Date', formatdate() )
         return msg
 
-    def process_email( self, peer, msg ):
+    def process_email( self, peer, msg : EmailMessage ):
 
         if self.from_addr:
             msg = self.fix_message_from( msg )
+        
+        if 'Date' not in msg:
+            msg = self.fix_message_date( msg )
 
         if self.server and self.server.relay:
             self.server.relay.send_email( msg )

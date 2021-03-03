@@ -1,7 +1,10 @@
 
 import logging
 import email
+import asyncore
 from smtpd import SMTPServer
+from threading import Thread
+
 from smtputt.fixer import SMTPuttFixer
 from smtputt.relay import SMTPuttRelay
 
@@ -20,6 +23,11 @@ class SMTPuttServer( SMTPServer ):
             int( kwargs['listenport'] ) if 'listenport' in kwargs else 25)
 
         super().__init__( listen_tuple, None )
+    
+    def serve_thread( self ):
+        self.thread = Thread( target=asyncore.loop )
+        self.thread.start()
+        return self.thread
 
     def process_message( self, peer, mailfrom, rcpttos, data, **kwargs ):
 

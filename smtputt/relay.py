@@ -1,6 +1,6 @@
 
 import logging
-from smtplib import SMTP, SMTP_SSL
+from smtplib import SMTP, SMTPConnectError, SMTPDataError, SMTPException, SMTP_SSL
 
 class SMTPuttRelay( object ):
 
@@ -14,13 +14,16 @@ class SMTPuttRelay( object ):
             else None
         self.out_password = kwargs['remotepassword'] if 'remotepassword' \
             in kwargs else None
+        self.smtp_class = SMTP if 'remotessl' in kwargs \
+            and 'false' == kwargs['remotessl'] else SMTP_SSL
 
     def send_email( self, msg ):
-        with SMTP_SSL( self.out_server, self.out_port ) as smtp:
-            smtp.login( self.out_user, self.out_password )
-            try:
+        try:
+            with self.smtp_class( self.out_server, self.out_port ) as smtp:
+                if self.out_user or self.out_password:
+                    smtp.login( self.out_user, self.out_password )
                 res = smtp.sendmail( 
-                    self.from_addr, msg['To'], msg.as_string() )
+                    msg['From'], msg['To'], msg.as_string() )
                 self.logger.info( 'message forwarded without error.' )
-            except Exception as exc:
-                self.logger.error( 'error while forwarding message: %s', exc )
+        except SMTPException as exc:
+            self.logger.error( 'error while forwarding message: %s', exc )

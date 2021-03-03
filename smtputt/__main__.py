@@ -29,8 +29,8 @@ def main():
     cfg_dict = dict( config.items( 'forwarder' ) )
 
     cache = SMTPuttServer( **cfg_dict )
-
-    asyncore.loop()
+    cache_thread = cache.serve_thread()
+    cache_thread.join()
 
 if '__main__' == __name__:
     main()
