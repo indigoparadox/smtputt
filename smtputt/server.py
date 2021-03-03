@@ -10,9 +10,13 @@ from smtputt.relay import SMTPuttRelay
 
 class SMTPuttServer( SMTPServer ):
 
+    ''' SMTP listener. Listens for messages and dispatches them
+    for processing. '''
+
     def __init__( self, **kwargs ):
 
         self.logger = logging.getLogger( 'server' )
+        self.thread : Thread
         self.fixer = SMTPuttFixer( **kwargs )
         self.fixer.server = self
         self.relay = SMTPuttRelay( **kwargs )
@@ -23,7 +27,7 @@ class SMTPuttServer( SMTPServer ):
             int( kwargs['listenport'] ) if 'listenport' in kwargs else 25)
 
         super().__init__( listen_tuple, None )
-    
+
     def serve_thread( self ):
         self.thread = Thread( target=asyncore.loop )
         self.thread.start()
@@ -37,3 +41,4 @@ class SMTPuttServer( SMTPServer ):
             msg['From'], msg['To'] ) )
 
         msg = self.fixer.process_email( peer, msg )
+        self.relay.send_email( msg )

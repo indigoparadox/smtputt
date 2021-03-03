@@ -31,3 +31,5 @@ class SMTPuttFixer( object ):
 
         if self.server and self.server.relay:
             self.server.relay.send_email( msg )
+
+        return msg

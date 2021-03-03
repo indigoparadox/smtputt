@@ -14,7 +14,7 @@ from smtputt.relay import SMTPuttRelay
 class TestRelay( unittest.TestCase ):
 
     class TestSMTPServer( SMTPServer ):
-        
+
         def __init__( self, tester ):
             listen_port = random.randrange( 40000, 50000 )
             super().__init__( ('localhost', listen_port), None )
@@ -55,7 +55,6 @@ class TestRelay( unittest.TestCase ):
 
         self.relay.send_email( msg )
 
-        print( self.last_msg )
         self.assertIsNotNone( self.last_msg )
         self.assertEqual( self.last_msg['To'], 'test@example.com' )
         self.assertEqual( self.last_msg['From'], 'smtputt@example.com' )
