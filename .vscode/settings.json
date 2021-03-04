@@ -16,6 +16,6 @@
         "**/.hg": true,
         "**/CVS": true,
         "**/.DS_Store": true,
-        "**/env/**"
+        "**/env/**": true
     }
 }
