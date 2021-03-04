@@ -1,0 +1,3 @@
+
+class SMTPuttAuthorizer( object ):
+    pass

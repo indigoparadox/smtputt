@@ -2,29 +2,17 @@
 from ssl import SSLError
 import unittest
 import email
+import os
+import sys
 import email.message
-import asyncore
-import random
-from smtpd import SMTPServer
 from smtplib import SMTP_SSL
-from threading import Thread
 
+sys.path.append( os.path.dirname( __file__ ) )
+
+from smtp_helper import TestSMTPServer
 from smtputt.relay import SMTPuttRelay
 
 class TestRelay( unittest.TestCase ):
-
-    class TestSMTPServer( SMTPServer ):
-
-        def __init__( self, tester ):
-            listen_port = random.randrange( 40000, 50000 )
-            super().__init__( ('localhost', listen_port), None )
-            self.tester = tester
-            self.tester.smtp_listen = listen_port
-            self.thread = Thread( target=asyncore.loop, daemon=True )
-            self.thread.start()
-
-        def process_message( self, peer, mailfrom, rcpttos, data, **kwargs ):
-            self.tester.last_msg = email.message_from_bytes( data )
 
     def setUp(self) -> None:
 
@@ -33,7 +21,7 @@ class TestRelay( unittest.TestCase ):
         while not self.smtp:
             # If random ports collide, retry.
             try:
-                self.smtp = self.TestSMTPServer( self )
+                self.smtp = TestSMTPServer( self )
             except OSError:
                 self.smtp = None
         relay_args = {
@@ -52,6 +40,7 @@ class TestRelay( unittest.TestCase ):
         msg = email.message.EmailMessage()
         msg.add_header( 'To', 'test@example.com' )
         msg.add_header( 'From', 'smtputt@example.com' )
+        msg.set_content( '\r\n' )
 
         self.relay.send_email( msg )
 
