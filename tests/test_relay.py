@@ -13,7 +13,7 @@ import smtputt.relay
 
 class TestRelay( unittest.TestCase ):
 
-    def setUp(self) -> None:
+    def setUp( self ):
         self.relay_args = {
             'remoteserver': 'localhost',
             'remoteport': 25,

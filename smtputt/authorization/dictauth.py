@@ -2,7 +2,7 @@
 from . import SMTPuttAuthResult, SMTPuttAuthorizer
 
 class SMTPuttDictAuthorizer( SMTPuttAuthorizer ):
-    
+
     def __init__( self, **kwargs ):
         super().__init__( **kwargs )
 

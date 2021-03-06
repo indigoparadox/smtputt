@@ -40,6 +40,8 @@ Configuration is stored in an ini file, with the following sections:
 
 ### \[fixer\]
 
+TODO: This should be broken up into a modular configuration, similar to the authorizers.
+
 * fromaddress (optional)
   E-mail address which should replace the From: address on messages forwarded through SMTPutt.
 
@@ -50,6 +52,22 @@ The following are authorizers that may be specified in the authmodule= line in t
 Configuration options for authorizers should be placed in the \[server\] section.
 
 ### smtputt.authorizers.ldap
+
+This authorizer attempts to simply bind to an LDAP server provided with the credentials provided to the SMTP server.
+
+#### Configuration
+
+* ldaphost
+  Hostname of the LDAP server to validate against.
+
+* ldapport (optional)
+  Port to connect to said LDAP server on.
+
+* ldapdnformat
+  DN format to use for usernames to bind to LDAP server. %u is replaced with the username provided to the SMTP server.
+
+* ldapssl (optional, default false)
+  'true' if TLS should be used to connect to LDAP server, otherwise 'false'.
 
 ### smtputt.authorizers.dictauth
 
