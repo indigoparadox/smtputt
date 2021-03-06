@@ -1,6 +1,7 @@
 
+import ldap3
+
 from . import SMTPuttAuthorizer, SMTPuttAuthResult
-from ldap3 import Server, Connection, SAFE_SYNC
 
 class SMTPuttLDAPAuthorizer( SMTPuttAuthorizer ):
 
@@ -16,7 +17,7 @@ class SMTPuttLDAPAuthorizer( SMTPuttAuthorizer ):
         self.dn_format = kwargs['ldapdnformat']
         self.use_ssl = ('ldapssl' in kwargs and kwargs['ldapssl'])
 
-        self.server = Server( **server_args )
+        self.server = ldap3.Server( **server_args )
 
     def authorize( self, username, password ):
 
@@ -25,9 +26,9 @@ class SMTPuttLDAPAuthorizer( SMTPuttAuthorizer ):
         connection_args['server'] = self.server
         connection_args['user'] = self.dn_format.replace( '%u', username )
         connection_args['password'] = password
-        connection_args['client_strategy'] = SAFE_SYNC
+        connection_args['client_strategy'] = ldap3.SAFE_SYNC
 
-        connection = Connection( **connection_args )
+        connection = ldap3.Connection( **connection_args )
 
         if self.use_ssl:
             connection.start_tls()

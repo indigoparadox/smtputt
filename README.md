@@ -43,13 +43,10 @@ This authorizer attempts to simply bind to an LDAP server provided with the cred
 
 * ldaphost
   Hostname of the LDAP server to validate against.
-
 * ldapport (optional)
   Port to connect to said LDAP server on.
-
 * ldapdnformat
   DN format to use for usernames to bind to LDAP server. %u is replaced with the username provided to the SMTP server.
-
 * ldapssl (optional, default false)
   'true' if TLS should be used to connect to LDAP server, otherwise 'false'.
 
@@ -66,6 +63,8 @@ This authorizer compares the username and password to a static dictionary provid
 
 ### smtputt.relays.smtp
 
+#### Configuration
+
 * remoteserver
   Address of the relay server SMTPutt should forward received messages to.
 * remoteport (optional, default 25)
@@ -77,13 +76,34 @@ This authorizer compares the username and password to a static dictionary provid
 * remotessl (optional, default false)
   "true" if TLS should be used to login to the remote server, otherwise "false".
 
+### smtputt.relays.mqtt
+
+#### Configuration
+
+* mqttserver
+  Address of the MQTT server SMTPutt should publish received messages to.
+* mqttport
+  MQTT port on the remote server.
+* mqttuid
+  UID to use on the remote server. This will have a random string appended to it, to facilitate multiple connections.
+* mqttssl (optional, default 'false')
+  'true' if TLS should be used to connect to the MQTT server, 'false otherwise.
+* mqttca (optional, required if mqttssl is 'true')
+  Local filesystem path to a root certificate used to validate MQTT server certificate.
+* mqtttopic
+  Topic to publish received messages to. Uses the replacement tokens below:
+
+| Token    | Replacement           |
+| -------- | --------------------- |
+| %s       | Message subject       |
+| %t       | Message To: address   |
+| %f       | Message From: address |
+
 ## Fixers
 
 ### smtputt.fixers.fromdate
 
 #### Configuration
-
-* fromdate
 
 ### smtputt.fixers.fromaddress
 
