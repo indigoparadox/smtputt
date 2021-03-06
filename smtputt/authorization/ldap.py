@@ -1,4 +1,7 @@
 
 from . import SMTPuttAuthorizer
 
-class SMTPuttLDAPAuthorizer
+class SMTPuttLDAPAuthorizer( SMTPuttAuthorizer ):
+    pass
+
+AUTHORIZER = SMTPuttLDAPAuthorizer

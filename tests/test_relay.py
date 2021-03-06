@@ -9,52 +9,49 @@ from smtplib import SMTP_SSL
 
 sys.path.append( os.path.dirname( __file__ ) )
 
-from smtp_helper import TestSMTPServer
+from smtp_helper import create_server, create_test_server
 from smtputt.relay import SMTPuttRelay
 
 class TestRelay( unittest.TestCase ):
 
     def setUp(self) -> None:
-
-        self.smtp_listen : int
-        self.smtp = None
-        while not self.smtp:
-            # If random ports collide, retry.
-            try:
-                self.smtp = TestSMTPServer( self )
-            except OSError:
-                self.smtp = None
-        relay_args = {
+        self.relay_args = {
             'remoteserver': 'localhost',
-            'remoteport': self.smtp_listen,
+            'remoteport': None,
             'remotessl': 'false'
         }
-        self.last_msg : email.message.EmailMessage
-        self.relay = SMTPuttRelay( **relay_args )
-
-    def tearDown(self) -> None:
-        self.smtp.close()
 
     def test_send_email( self ):
 
-        msg = email.message.EmailMessage()
-        msg.add_header( 'To', 'test@example.com' )
-        msg.add_header( 'From', 'smtputt@example.com' )
-        msg.set_content( '\r\n' )
+        with create_test_server() as remote_server:
 
-        self.relay.send_email( msg )
+            msg = email.message.EmailMessage()
+            msg.add_header( 'To', 'test@example.com' )
+            msg.add_header( 'From', 'smtputt@example.com' )
+            msg.set_content( '\r\n' )
 
-        self.assertIsNotNone( self.last_msg )
-        self.assertEqual( self.last_msg['To'], 'test@example.com' )
-        self.assertEqual( self.last_msg['From'], 'smtputt@example.com' )
+            relay_args = self.relay_args.copy()
+            relay_args['remoteport'] = str( remote_server.smtp_listen )
+
+            relay = SMTPuttRelay( **relay_args )
+            relay.send_email( msg )
+
+            self.assertIsNotNone( remote_server.last_msg )
+            self.assertEqual( remote_server.last_msg['To'], 'test@example.com' )
+            self.assertEqual( remote_server.last_msg['From'], 'smtputt@example.com' )
 
     def test_send_email_ssl( self ):
 
-        self.relay.smtp_class = SMTP_SSL
+        with create_test_server() as remote_server:
 
-        msg = email.message.EmailMessage()
-        msg.add_header( 'To', 'test@example.com' )
-        msg.add_header( 'From', 'smtputt@example.com' )
+            msg = email.message.EmailMessage()
+            msg.add_header( 'To', 'test@example.com' )
+            msg.add_header( 'From', 'smtputt@example.com' )
 
-        with self.assertRaises( SSLError ):
-            self.relay.send_email( msg )
+            relay_args = self.relay_args.copy()
+            relay_args['remoteport'] = str( remote_server.smtp_listen )
+            relay_args['remotessl'] = True
+            relay = SMTPuttRelay( **relay_args )
+
+            with self.assertRaises( SSLError ):
+                relay.send_email( msg )

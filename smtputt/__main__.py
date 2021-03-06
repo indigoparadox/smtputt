@@ -1,5 +1,4 @@
 
-import asyncore
 import logging
 import os
 import argparse

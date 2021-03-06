@@ -7,7 +7,7 @@ from smtputt.fixer import SMTPuttFixer
 class TestFixer( unittest.TestCase ):
 
     def test_fix_from_address( self ):
-        
+
         msg = email.message.EmailMessage()
         msg.add_header( 'From', 'sender@example.com' )
 
@@ -20,7 +20,7 @@ class TestFixer( unittest.TestCase ):
         self.assertEqual( msg_fixed['From'], 'fixed@example.com' )
 
     def test_fix_date_heder( self ):
-        
+
         msg = email.message.EmailMessage()
         msg.add_header( 'From', 'sender@example.com' )
 

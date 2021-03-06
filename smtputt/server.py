@@ -2,23 +2,13 @@
 import logging
 import email
 import asyncore
-from smtpd import SMTPServer, SMTPChannel
+from smtpd import SMTPServer
 from threading import Thread
+from importlib import import_module
 
 from smtputt.fixer import SMTPuttFixer
 from smtputt.relay import SMTPuttRelay
-
-class SMTPuttChannel( SMTPChannel ):
-
-    def __init__( self, server, conn, addr,  *args, **kwargs ):
-        super().__init__( server, conn, addr, *args, **kwargs )
-        print( 'qqq' )
-        print( args )
-        print( 'qqq' )
-
-    def smtp_AUTH( self, arg ):
-        print( arg )
-        self.push( b'334' )
+from smtputt.channel import SMTPuttChannel
 
 class SMTPuttServer( SMTPServer ):
 
@@ -38,6 +28,11 @@ class SMTPuttServer( SMTPServer ):
         # TODO: Automatically add own network/loopback.
         self.networks = kwargs['listennetworks'].split( ',' ) \
             if 'listennetworks' in kwargs else ['127.0.0.1/32']
+
+        if 'authmodule' in kwargs:
+            kwargs['authmodule'] = import_module( kwargs['authmodule'] )
+
+        self.kwargs = kwargs
 
         listen_tuple = (
             kwargs['listenhost'] if 'listenhost' in kwargs else '0.0.0.0',
