@@ -1,5 +1,6 @@
 
 import unittest
+from unittest.mock import Mock, MagicMock
 import email.message
 
 from smtputt.fixer import SMTPuttFixer

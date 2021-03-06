@@ -28,7 +28,8 @@ class SMTPuttServer( SMTPServer ):
         self.networks = kwargs['listennetworks'].split( ',' ) \
             if 'listennetworks' in kwargs else ['127.0.0.1/32']
 
-        if 'authmodule' in kwargs:
+        if 'authmodule' in kwargs and \
+        isinstance( kwargs['authmodule'], str ):
             kwargs['authmodule'] = import_module( kwargs['authmodule'] )
 
         self.kwargs = kwargs

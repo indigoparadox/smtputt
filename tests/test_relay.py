@@ -5,53 +5,51 @@ import email
 import os
 import sys
 import email.message
-from smtplib import SMTP_SSL
+from unittest.mock import Mock, patch
 
 sys.path.append( os.path.dirname( __file__ ) )
 
-from smtp_helper import create_test_server
-from smtputt.relay import SMTPuttRelay
+import smtputt.relay
 
 class TestRelay( unittest.TestCase ):
 
     def setUp(self) -> None:
         self.relay_args = {
             'remoteserver': 'localhost',
-            'remoteport': None,
+            'remoteport': 25,
             'remotessl': 'false'
         }
 
     def test_send_email( self ):
 
-        with create_test_server() as remote_server:
+        msg = email.message.EmailMessage()
+        msg.add_header( 'To', 'test@example.com' )
+        msg.add_header( 'From', 'smtputt@example.com' )
+        msg.set_content( '\r\n' )
 
-            msg = email.message.EmailMessage()
-            msg.add_header( 'To', 'test@example.com' )
-            msg.add_header( 'From', 'smtputt@example.com' )
-            msg.set_content( '\r\n' )
+        relay_args = self.relay_args.copy()
 
-            relay_args = self.relay_args.copy()
-            relay_args['remoteport'] = str( remote_server.smtp_listen )
-
-            relay = SMTPuttRelay( **relay_args )
+        with patch( 'smtplib.SMTP', autospec=True ) as mock_smtp:
+            smtputt.relay.SMTP = mock_smtp
+            relay = smtputt.relay.SMTPuttRelay( **relay_args )
             relay.send_email( msg )
-
-            self.assertIsNotNone( remote_server.last_msg )
-            self.assertEqual( remote_server.last_msg['To'], 'test@example.com' )
-            self.assertEqual( remote_server.last_msg['From'], 'smtputt@example.com' )
+            mock_smtp.assert_called_with( 'localhost', 25 )
+            mock_instance = mock_smtp.return_value.__enter__.return_value
+            mock_instance.sendmail.assert_called_with( msg['From'], msg['To'], msg.as_string() )
 
     def test_send_email_ssl( self ):
 
-        with create_test_server() as remote_server:
+        msg = email.message.EmailMessage()
+        msg.add_header( 'To', 'test@example.com' )
+        msg.add_header( 'From', 'smtputt@example.com' )
 
-            msg = email.message.EmailMessage()
-            msg.add_header( 'To', 'test@example.com' )
-            msg.add_header( 'From', 'smtputt@example.com' )
+        relay_args = self.relay_args.copy()
+        relay_args['remotessl'] = 'true'
 
-            relay_args = self.relay_args.copy()
-            relay_args['remoteport'] = str( remote_server.smtp_listen )
-            relay_args['remotessl'] = True
-            relay = SMTPuttRelay( **relay_args )
-
-            with self.assertRaises( SSLError ):
-                relay.send_email( msg )
+        with patch( 'smtplib.SMTP_SSL', autospec=True ) as mock_smtp:
+            smtputt.relay.SMTP_SSL = mock_smtp
+            relay = smtputt.relay.SMTPuttRelay( **relay_args )
+            relay.send_email( msg )
+            mock_smtp.assert_called_with( 'localhost', 25 )
+            mock_instance = mock_smtp.return_value.__enter__.return_value
+            mock_instance.sendmail.assert_called_with( msg['From'], msg['To'], msg.as_string() )
