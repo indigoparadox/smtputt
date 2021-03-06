@@ -27,6 +27,8 @@ class SMTPuttServer( SMTPServer ):
             self.relay.server = self
         self.networks = kwargs['listennetworks'].split( ',' ) \
             if 'listennetworks' in kwargs else ['127.0.0.1/32']
+        self.channels : 'list[SMTPuttChannel]'
+        self.channels = []
 
         if 'authmodule' in kwargs and \
         isinstance( kwargs['authmodule'], str ):
@@ -45,6 +47,17 @@ class SMTPuttServer( SMTPServer ):
         self.thread.daemon = daemonize
         self.thread.start()
         return self.thread
+
+    def handle_accepted(self, conn, addr):
+        self.logger.debug( 'Incoming connection from %s', repr(addr) )
+        channel = self.channel_class(
+            self, conn, addr, self.data_size_limit, self._map,
+            self.enable_SMTPUTF8, self._decode_data )
+        self.channels.append( channel )
+
+    def handle_close( self ):
+        print( 'close' )
+        super().handle_close()
 
     def process_message( self, peer, mailfrom, rcpttos, data, **kwargs ):
 

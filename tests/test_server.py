@@ -1,5 +1,4 @@
 
-from importlib import import_module
 import logging
 import unittest
 import random
@@ -7,15 +6,19 @@ import email
 import email.message
 import os
 import sys
+import time
 from contextlib import contextmanager
+from unittest.mock import patch, Mock
 from importlib import import_module
-from smtplib import SMTP as SMTPClient, SMTPAuthenticationError
+from importlib import import_module
+from smtplib import SMTP as SMTPClient, SMTPAuthenticationError, SMTPResponseException
 
 from faker import Faker
 
 sys.path.append( os.path.dirname( __file__ ) )
 
 import smtputt.server
+from smtputt.channel import SMTPuttAuthStatus
 from fake_smtp import FakeSMTP
 
 class TestServer( unittest.TestCase ):
@@ -59,16 +62,85 @@ class TestServer( unittest.TestCase ):
     def tearDown( self ):
         self.server.close()
 
+    @contextmanager
+    def create_mock_server( self ):
+        with patch( 'smtputt.server.SMTPuttServer', autospec=True ) as mock_server:
+            mock_server.channels = Mock()
+            mock_server.channels.remove = Mock( side_effect=
+                lambda c: self.server.channels.remove( c ) )
+            mock_server.process_message = Mock( side_effect=
+                lambda peer, mailfrom, rcpttos, data, **kwargs:
+                    self.server.process_message(
+                        peer, mailfrom, rcpttos, data, **kwargs ) )
+            yield mock_server
+
     def test_auth( self ):
 
         with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            self.assertEqual(
+                self.server.channels[0]._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_NONE )
             smtp.login( 'testuser1', 'testpass1' )
+            self.assertEqual(
+                self.server.channels[0]._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_SUCCESSFUL )
 
     def test_auth_fail( self ):
 
         with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            self.assertEqual(
+                self.server.channels[0]._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_NONE )
             with self.assertRaises( SMTPAuthenticationError ):
                 smtp.login( 'testuser1', 'testpass2' )
+            self.assertEqual(
+                self.server.channels[0]._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_NONE )
+
+    def test_failauth_message( self ):
+
+        msg = self.fake.email_msg()
+
+        with self.assertRaises( SMTPResponseException ):
+            with SMTPClient( 'localhost', self.listen_port ) as smtp:
+                channel = self.server.channels[0]
+                self.assertEqual(
+                    channel._auth_login_stage,
+                    SMTPuttAuthStatus.AUTH_NONE )
+
+                with self.assertRaises( SMTPAuthenticationError ):
+                    smtp.login( 'testuser1', 'testpass2' )
+
+                self.assertEqual(
+                    channel._auth_login_stage,
+                    SMTPuttAuthStatus.AUTH_NONE )
+
+                # Replace the channel's server for testing.
+                with self.create_mock_server() as mock_server:
+                    channel.smtp_server = mock_server
+                    smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
+                    mock_server.process_message.assert_not_called()
+
+        self.assertIsNone( self.relay.last_msg )
+
+    def test_unauth_message( self ):
+
+        msg = self.fake.email_msg()
+
+        with self.assertRaises( SMTPResponseException ):
+            with SMTPClient( 'localhost', self.listen_port ) as smtp:
+                channel = self.server.channels[0]
+                self.assertEqual(
+                    channel._auth_login_stage,
+                    SMTPuttAuthStatus.AUTH_NONE )
+
+                # Replace the channel's server for testing.
+                with self.create_mock_server() as mock_server:
+                    channel.smtp_server = mock_server
+                    smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
+                    mock_server.process_message.assert_not_called()
+
+        self.assertIsNone( self.relay.last_msg )
 
     def test_process_message( self ):
 
@@ -78,8 +150,20 @@ class TestServer( unittest.TestCase ):
         msg_to = msg['To']
 
         with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            channel = self.server.channels[0]
+            self.assertEqual(
+                channel._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_NONE )
             smtp.login( 'testuser1', 'testpass1' )
-            smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
+            self.assertEqual(
+                channel._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_SUCCESSFUL )
+
+            # Replace the channel's server for testing.
+            with self.create_mock_server() as mock_server:
+                channel.smtp_server = mock_server
+                smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
+                mock_server.process_message.assert_called_once()
 
         self.assertIsNotNone( self.relay.last_msg )
         self.assertEqual( self.relay.last_msg['To'], msg_to )

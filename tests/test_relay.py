@@ -35,7 +35,8 @@ class TestRelay( unittest.TestCase ):
             relay.send_email( msg )
             mock_smtp.assert_called_with( 'localhost', 25 )
             mock_instance = mock_smtp.return_value.__enter__.return_value
-            mock_instance.sendmail.assert_called_with( msg['From'], msg['To'], msg.as_string() )
+            mock_instance.sendmail.assert_called_with(
+                msg['From'], msg['To'], msg.as_string() )
 
     def test_send_email_ssl( self ):
 
@@ -52,4 +53,5 @@ class TestRelay( unittest.TestCase ):
             relay.send_email( msg )
             mock_smtp.assert_called_with( 'localhost', 25 )
             mock_instance = mock_smtp.return_value.__enter__.return_value
-            mock_instance.sendmail.assert_called_with( msg['From'], msg['To'], msg.as_string() )
+            mock_instance.sendmail.assert_called_with(
+                msg['From'], msg['To'], msg.as_string() )

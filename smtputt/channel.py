@@ -42,6 +42,14 @@ class SMTPuttChannel( SMTPChannel ):
 
         super().__init__( server, conn, addr, *args, **kwargs )
 
+    def handle_close( self ):
+        try:
+            self.smtp_server.channels.remove( self )
+        except AttributeError as exc:
+            self.logger.warning(
+                'while removing self from server channels: %s', exc )
+        super().handle_close()
+
     def SMTP_QUIT( self, arg: str ):
         self.push( '221 Goodbye' )
         self.close_when_done()

@@ -26,4 +26,5 @@ class SMTPuttRelay( object ):
                     msg['From'], msg['To'], msg.as_string() )
                 self.logger.info( 'message forwarded without error.' )
         except SMTPException as exc:
+            # TODO: Store message and try every so often until success.
             self.logger.error( 'error while forwarding message: %s', exc )
