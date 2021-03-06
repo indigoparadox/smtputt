@@ -5,8 +5,6 @@ import argparse
 import configparser
 
 from smtputt.server import SMTPuttServer
-from smtputt.fixer import SMTPuttFixer
-from smtputt.relay import SMTPuttRelay
 
 def main():
 
@@ -27,16 +25,16 @@ def main():
     config = configparser.ConfigParser()
     config.read( args.config )
 
-    relay_cfg = dict( config.items( 'forwarder' ) )
-    relay = SMTPuttRelay( **kwargs )
-    fixer_cfg = dict( config.items( 'fixer' ) )
-    fixer = SMTPuttFixer( **fixer_cfg )
-
+    module_cfgs = {}
     server_cfg = dict( config.items( 'server' ) )
-    server_cfg['relay'] = relay
-    server_cfg['fixer'] = fixer
-    
-    cache = SMTPuttServer( **server_cfg )
+    for module in server_cfg['authmodules'].split( ',' ):
+        module_cfgs[module] = dict( config.items( module ) )
+    for module in server_cfg['relaymodules'].split( ',' ):
+        module_cfgs[module] = dict( config.items( module ) )
+    for module in server_cfg['fixermodules'].split( ',' ):
+        module_cfgs[module] = dict( config.items( module ) )
+
+    cache = SMTPuttServer( module_cfgs, **server_cfg )
     cache_thread = cache.serve_thread()
     cache_thread.join()
 

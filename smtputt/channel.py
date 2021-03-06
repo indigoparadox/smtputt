@@ -33,10 +33,11 @@ class SMTPuttChannel( SMTPChannel ):
         self.auth_required = \
             ('authrequired' in server.kwargs and \
                 server.kwargs['authrequired'])
-        self.auth_class : SMTPuttAuthorizer
-        self.auth_class = server.kwargs['authmodule'].AUTHORIZER \
-            if 'authmodule' in server.kwargs else None
-        assert( self.auth_class or not self.auth_required )
+        self.auth_classes : 'list[SMTPuttAuthorizer]'
+        self.auth_classes = \
+            [m.AUTHORIZER( **server.module_cfgs[m.__loader__.name] ) \
+            for m in server.auth_modules]
+        assert( self.auth_classes or not self.auth_required )
 
         self.kwargs = server.kwargs
 
@@ -57,7 +58,7 @@ class SMTPuttChannel( SMTPChannel ):
 
     def smtp_EHLO( self, arg: str ):
         self.push( '250-localhost Hello {}'.format( arg ) )
-        if self.auth_class:
+        if self.auth_classes:
             self.push( '250-AUTH LOGIN PLAIN' )
         super().smtp_EHLO( arg )
 
@@ -109,16 +110,23 @@ class SMTPuttChannel( SMTPChannel ):
 
         elif SMTPuttAuthStatus.AUTH_IN_PROGRESS == self._auth_login_stage:
             # Second step.
-            authorizer = self.auth_class( **self.kwargs )
-            res = authorizer.authorize( self._auth_login_user, cred )
-            self.auth_reset()
+            for authorizer in self.auth_classes:
+                res = authorizer.authorize( self._auth_login_user, cred )
+                self.auth_reset()
+                if SMTPuttAuthResult.AUTH_REJECTED != res:
+                    # Break immediately on success or technical issue.
+                    return res
             return res
 
     def auth_validate_plain( self, user : str, passwd : str ) \
     -> SMTPuttAuthResult:
-        self.auth_reset()
-        authorizer = self.auth_class( **self.kwargs )
-        return authorizer.authorize( user, passwd )
+        for authorizer in self.auth_classes:
+            res = authorizer.authorize( user, passwd )
+            self.auth_reset()
+            if SMTPuttAuthResult.AUTH_REJECTED != res:
+                # Break immediately on success or technical issue.
+                return res
+        return res
 
     def auth_success( self ):
 

@@ -12,44 +12,28 @@
 
 Configuration is stored in an ini file, with the following sections:
 
-### \[relay\]
-
-* remoteserver
-  Address of the relay server SMTPutt should forward received messages to.
-* remoteport (optional, default 25)
-  SMTP port on the remote server.
-* remoteuser (optional)
-  Username used to login to the remote server.
-* remotepassword (optional)
-  Password used to login to the remote server.
-* remotessl (optional, default false)
-  "true" if TLS should be used to login to the remote server, otherwise "false".
-
 ### \[server\]
 
 * listenhost (optional, default 0.0.0.0)
   Local address on which SMTPutt should listen for incoming messages.
 * listenport (optional, default 25)
   Local port on which SMTPutt should listen for incoming messages.
-* authmodule (optional)
-  Module path for the module used to authorize sending mail through the SMTPutt relay.
+* fixermodules (optional)
+  Module paths for modules which will be applied to "fix" any mail passing through the SMTPutt relay.
+* relaymodules (optional)
+  Modules which will be used to relay incoming mail. SMTPutt is rather useless without any relay modules.
+* authmodules (optional)
+  Module paths for modules used to authorize sending mail through the SMTPutt relay. Modules will be tried in order until one succeeds.
 * authrequired (optional, default False)
   Whether authorization is required to send mail through the SMTPutt relay.
 * mynetworks (optional, default 127.0.0.1)
   A comma-separated list of network addresses (in CIDR form e.g. 0.0.0.0/0) from which the server should accept mail.
 
-### \[fixer\]
-
-TODO: This should be broken up into a modular configuration, similar to the authorizers.
-
-* fromaddress (optional)
-  E-mail address which should replace the From: address on messages forwarded through SMTPutt.
+Individual module configurations should be placed in the ini file under a section named for their module path. e.g. configuration for smtputt.authorizers.ldap should go in a section named \[smtputt.authorizers.ldap\].
 
 ## Authorizers
 
 The following are authorizers that may be specified in the authmodule= line in the configuration file.
-
-Configuration options for authorizers should be placed in the \[server\] section.
 
 ### smtputt.authorizers.ldap
 
@@ -77,3 +61,33 @@ This authorizer compares the username and password to a static dictionary provid
 
 * authdict
   Dictionary of users in the format user1:password1,user2:password2
+
+## Relays
+
+### smtputt.relays.smtp
+
+* remoteserver
+  Address of the relay server SMTPutt should forward received messages to.
+* remoteport (optional, default 25)
+  SMTP port on the remote server.
+* remoteuser (optional)
+  Username used to login to the remote server.
+* remotepassword (optional)
+  Password used to login to the remote server.
+* remotessl (optional, default false)
+  "true" if TLS should be used to login to the remote server, otherwise "false".
+
+## Fixers
+
+### smtputt.fixers.fromdate
+
+#### Configuration
+
+* fromdate
+
+### smtputt.fixers.fromaddress
+
+#### Configuration
+
+* fromaddress
+  E-mail address which should replace the From: address on messages forwarded through SMTPutt.

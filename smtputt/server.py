@@ -15,24 +15,24 @@ class SMTPuttServer( SMTPServer ):
 
     channel_class = SMTPuttChannel
 
-    def __init__( self, **kwargs ):
+    def __init__( self, module_cfgs, **kwargs ):
 
         self.logger = logging.getLogger( 'server' )
         self.thread : Thread
-        self.fixer = kwargs['fixer'] if 'fixer' in kwargs else None
-        if self.fixer:
-            self.fixer.server = self
-        self.relay = kwargs['relay'] if 'relay' in kwargs else None
-        if self.relay:
-            self.relay.server = self
+        self.module_cfgs = module_cfgs
+        self.fixer_modules = [import_module( m ) \
+            for m in kwargs['fixermodules'].split( ',' )] if \
+            'fixermodules' in kwargs else []
+        self.auth_modules = [import_module( m ) \
+            for m in kwargs['authmodules'].split( ',' )] if \
+            'authmodules' in kwargs else []
+        self.relay_modules = [import_module( m ) \
+            for m in kwargs['relaymodules'].split( ',' )] if \
+            'relaymodules' in kwargs else []
         self.networks = kwargs['listennetworks'].split( ',' ) \
             if 'listennetworks' in kwargs else ['127.0.0.1/32']
         self.channels : 'list[SMTPuttChannel]'
         self.channels = []
-
-        if 'authmodule' in kwargs and \
-        isinstance( kwargs['authmodule'], str ):
-            kwargs['authmodule'] = import_module( kwargs['authmodule'] )
 
         self.kwargs = kwargs
 
@@ -41,6 +41,11 @@ class SMTPuttServer( SMTPServer ):
             int( kwargs['listenport'] ) if 'listenport' in kwargs else 25)
 
         super().__init__( listen_tuple, None )
+
+    def fix_message( self, peer, msg ):
+        for module in self.fixer_modules:
+            msg = module.process_email( peer, msg )
+        return msg
 
     def serve_thread( self, daemonize=False ):
         self.thread = Thread( target=asyncore.loop )
@@ -63,9 +68,11 @@ class SMTPuttServer( SMTPServer ):
 
         self.logger.info( 'connection established by %s', peer )
         msg = email.message_from_string( data.decode( 'utf-8' ) )
-        self.logger.info( 'incoming message from {} to {}'.format(
-            msg['From'], msg['To'] ) )
+        self.logger.info( 'incoming message from %s to %s',
+            msg['From'], msg['To'] )
 
-        if self.fixer:
-            msg = self.fixer.process_email( peer, msg )
-        self.relay.send_email( msg )
+        msg = self.fix_message( peer, msg )
+
+        for module in self.relay_modules:
+            relay = module.RELAY( **self.module_cfgs[module.__loader__.name] )
+            relay.send_email( msg )

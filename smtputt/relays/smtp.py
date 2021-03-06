@@ -1,10 +1,14 @@
 
 import logging
-from smtplib import SMTP, SMTPConnectError, SMTPDataError, SMTPException, SMTP_SSL
+from smtplib import SMTP, SMTPException, SMTP_SSL
 
-class SMTPuttRelay( object ):
+from . import SMTPuttRelay
+
+class SMTPuttSMTPRelay( SMTPuttRelay ):
 
     def __init__( self, **kwargs ):
+
+        super().__init__( **kwargs )
 
         self.logger = logging.getLogger( 'relay' )
         self.out_server = kwargs['remoteserver']
@@ -22,7 +26,7 @@ class SMTPuttRelay( object ):
             with self.smtp_class( self.out_server, self.out_port ) as smtp:
                 if self.out_user or self.out_password:
                     smtp.login( self.out_user, self.out_password )
-                res = smtp.sendmail( 
+                res = smtp.sendmail(
                     msg['From'], msg['To'], msg.as_string() )
                 self.logger.info( 'message forwarded without error.' )
         except SMTPException as exc:

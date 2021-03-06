@@ -1,15 +1,14 @@
 
-from ssl import SSLError
 import unittest
-import email
 import os
 import sys
+import email
 import email.message
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 sys.path.append( os.path.dirname( __file__ ) )
 
-import smtputt.relay
+import smtputt.relays.smtp
 
 class TestRelay( unittest.TestCase ):
 
@@ -30,8 +29,8 @@ class TestRelay( unittest.TestCase ):
         relay_args = self.relay_args.copy()
 
         with patch( 'smtplib.SMTP', autospec=True ) as mock_smtp:
-            smtputt.relay.SMTP = mock_smtp
-            relay = smtputt.relay.SMTPuttRelay( **relay_args )
+            smtputt.relays.smtp.SMTP = mock_smtp
+            relay = smtputt.relays.smtp.SMTPuttSMTPRelay( **relay_args )
             relay.send_email( msg )
             mock_smtp.assert_called_with( 'localhost', 25 )
             mock_instance = mock_smtp.return_value.__enter__.return_value
@@ -48,8 +47,8 @@ class TestRelay( unittest.TestCase ):
         relay_args['remotessl'] = 'true'
 
         with patch( 'smtplib.SMTP_SSL', autospec=True ) as mock_smtp:
-            smtputt.relay.SMTP_SSL = mock_smtp
-            relay = smtputt.relay.SMTPuttRelay( **relay_args )
+            smtputt.relays.smtp.SMTP_SSL = mock_smtp
+            relay = smtputt.relays.smtp.SMTPuttSMTPRelay( **relay_args )
             relay.send_email( msg )
             mock_smtp.assert_called_with( 'localhost', 25 )
             mock_instance = mock_smtp.return_value.__enter__.return_value

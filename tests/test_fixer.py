@@ -1,9 +1,9 @@
 
 import unittest
-from unittest.mock import Mock, MagicMock
 import email.message
 
-from smtputt.fixer import SMTPuttFixer
+from smtputt.fixers.fromaddress import SMTPuttFromAddressFixer
+from smtputt.fixers.fromdate import SMTPuttFromDateFixer
 
 class TestFixer( unittest.TestCase ):
 
@@ -15,7 +15,7 @@ class TestFixer( unittest.TestCase ):
         fixer_args = {
             'fromaddress': 'fixed@example.com'
         }
-        fixer = SMTPuttFixer( **fixer_args )
+        fixer = SMTPuttFromAddressFixer( **fixer_args )
 
         msg_fixed = fixer.fix_message_from( msg )
         self.assertEqual( msg_fixed['From'], 'fixed@example.com' )
@@ -25,7 +25,7 @@ class TestFixer( unittest.TestCase ):
         msg = email.message.EmailMessage()
         msg.add_header( 'From', 'sender@example.com' )
 
-        fixer = SMTPuttFixer()
+        fixer = SMTPuttFromDateFixer()
 
         msg_fixed = fixer.fix_message_date( msg )
         self.assertIn( 'Date', msg_fixed )

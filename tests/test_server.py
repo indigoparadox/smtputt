@@ -6,20 +6,17 @@ import email
 import email.message
 import os
 import sys
-import time
 from contextlib import contextmanager
 from unittest.mock import patch, Mock
-from importlib import import_module
-from importlib import import_module
 from smtplib import SMTP as SMTPClient, SMTPAuthenticationError, SMTPResponseException
 
 from faker import Faker
 
 sys.path.append( os.path.dirname( __file__ ) )
 
+from fake_smtp import FakeSMTP
 import smtputt.server
 from smtputt.channel import SMTPuttAuthStatus
-from fake_smtp import FakeSMTP
 
 class TestServer( unittest.TestCase ):
 
@@ -35,15 +32,24 @@ class TestServer( unittest.TestCase ):
     def setUp( self ):
         self.fake = Faker()
         self.fake.add_provider( FakeSMTP )
+
         self.relay = self.FakeRelay()
 
         server_args = {
             'listenhost': 'localhost',
             'listenport': None,
-            'authmodule': import_module( 'smtputt.authorization.dictauth' ),
+            'authmodules': 'smtputt.authorization.dictauth',
             'authrequired': 'true',
-            'authdict': 'testuser1:testpass1,testuser2:testpass2',
             'relay': self.relay
+        }
+
+        module_cfgs = {
+            'smtputt.authorization.dictauth': {
+                'authdict': 'testuser1:testpass1,testuser2:testpass2'
+            },
+            'mock_relay': {
+
+            }
         }
 
         self.server = None
@@ -51,10 +57,18 @@ class TestServer( unittest.TestCase ):
             self.listen_port = random.randrange( 40000, 50000 )
             server_args['listenport'] = str( self.listen_port )
             try:
-                self.server =  smtputt.server.SMTPuttServer( **server_args )
+                self.server =  smtputt.server.SMTPuttServer( module_cfgs, **server_args )
             except OSError:
                 # Port in use.
                 pass
+
+        self.mock_relay_module = Mock()
+        self.mock_relay_module.__loader__ = Mock()
+        self.mock_relay_module.__loader__.name = Mock()
+        self.mock_relay_module.__loader__.name = 'mock_relay'
+        self.mock_relay_module.RELAY.return_value = self.relay
+        self.server.relay_modules = [self.mock_relay_module]
+
         self.server.serve_thread( daemonize=True )
 
         logging.getLogger( 'channel' ).setLevel( logging.DEBUG )
