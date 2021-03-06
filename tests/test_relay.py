@@ -9,7 +9,7 @@ from smtplib import SMTP_SSL
 
 sys.path.append( os.path.dirname( __file__ ) )
 
-from smtp_helper import create_server, create_test_server
+from smtp_helper import create_test_server
 from smtputt.relay import SMTPuttRelay
 
 class TestRelay( unittest.TestCase ):

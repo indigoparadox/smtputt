@@ -6,8 +6,6 @@ from smtpd import SMTPServer
 from threading import Thread
 from importlib import import_module
 
-from smtputt.fixer import SMTPuttFixer
-from smtputt.relay import SMTPuttRelay
 from smtputt.channel import SMTPuttChannel
 
 class SMTPuttServer( SMTPServer ):
@@ -21,11 +19,12 @@ class SMTPuttServer( SMTPServer ):
 
         self.logger = logging.getLogger( 'server' )
         self.thread : Thread
-        self.fixer = SMTPuttFixer( **kwargs )
-        self.fixer.server = self
-        self.relay = SMTPuttRelay( **kwargs )
-        self.relay.server = self
-        # TODO: Automatically add own network/loopback.
+        self.fixer = kwargs['fixer'] if 'fixer' in kwargs else None
+        if self.fixer:
+            self.fixer.server = self
+        self.relay = kwargs['relay'] if 'relay' in kwargs else None
+        if self.relay:
+            self.relay.server = self
         self.networks = kwargs['listennetworks'].split( ',' ) \
             if 'listennetworks' in kwargs else ['127.0.0.1/32']
 
@@ -53,5 +52,6 @@ class SMTPuttServer( SMTPServer ):
         self.logger.info( 'incoming message from {} to {}'.format(
             msg['From'], msg['To'] ) )
 
-        msg = self.fixer.process_email( peer, msg )
+        if self.fixer:
+            msg = self.fixer.process_email( peer, msg )
         self.relay.send_email( msg )

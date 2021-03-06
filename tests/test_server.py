@@ -15,10 +15,18 @@ from faker import Faker
 sys.path.append( os.path.dirname( __file__ ) )
 
 from fake_smtp import FakeSMTP
-from smtp_helper import create_server, create_test_server
 from smtputt.server import SMTPuttServer
 
 class TestServer( unittest.TestCase ):
+
+    class FakeRelay( object ):
+
+        def __init__( self ):
+            self.last_msg : email.message.EmailMessage
+            self.last_msg = None
+
+        def send_email( self, msg ):
+            self.last_msg = msg
 
     def setUp( self ):
         self.fake = Faker()
@@ -27,14 +35,28 @@ class TestServer( unittest.TestCase ):
         self.server_args = {
             'listenhost': 'localhost',
             'listenport': None,
-            'remoteserver': 'localhost',
-            'remotessl': 'false',
             'authmodule': 'smtputt.authorization.dictauth',
             'authrequired': 'true',
             'authdict': 'testuser1:testpass1,testuser2:testpass2'
         }
 
         logging.getLogger( 'channel' ).setLevel( logging.DEBUG )
+
+    @contextmanager
+    def create_server( self, server_args ):
+        server = None
+        while not server:
+            server_args['listenport'] = str( random.randrange( 40000, 50000 ) )
+            try:
+                server = SMTPuttServer( **server_args )
+            except OSError:
+                # Port in use.
+                pass
+        server.serve_thread( daemonize=True )
+        try:
+            yield server
+        finally:
+            server.close()
 
     def test_auth( self ):
 
@@ -43,34 +65,35 @@ class TestServer( unittest.TestCase ):
         msg_from = msg['From']
         msg_to = msg['To']
 
+        relay = self.FakeRelay()
         server_args = self.server_args.copy()
-        with create_test_server() as test_server:
-            with create_server(
-            test_server.smtp_listen, server_args ):
-                with SMTPClient(
-                'localhost', int( server_args['listenport'] ) ) as smtp:
-                    smtp.login( 'testuser1', 'testpass1' )
-                    smtp.sendmail(
-                        msg['From'], msg['To'], msg.as_string() )
+        server_args['relay'] = relay
+        with self.create_server( server_args ):
+            with SMTPClient(
+            'localhost', int( server_args['listenport'] ) ) as smtp:
+                smtp.login( 'testuser1', 'testpass1' )
+                smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
 
-            self.assertIsNotNone( test_server.last_msg )
-            self.assertEqual( test_server.last_msg['To'], msg_to )
-            self.assertEqual( test_server.last_msg['From'], msg_from )
+        self.assertIsNotNone( relay.last_msg )
+        self.assertEqual( relay.last_msg['To'], msg_to )
+        self.assertEqual( relay.last_msg['From'], msg_from )
 
     def test_auth_fail( self ):
 
+        relay = self.FakeRelay()
         server_args = self.server_args.copy()
-        with create_test_server() as test_server:
-            with create_server(
-            test_server.smtp_listen, server_args ):
-                with SMTPClient(
-                'localhost', int( server_args['listenport'] ) ) as smtp:
-                    with self.assertRaises( SMTPAuthenticationError ):
-                        smtp.login( 'testuser1', 'testpass2' )
+        server_args['relay'] = relay
+        with self.create_server( server_args ):
+            with SMTPClient(
+            'localhost', int( server_args['listenport'] ) ) as smtp:
+                with self.assertRaises( SMTPAuthenticationError ):
+                    smtp.login( 'testuser1', 'testpass2' )
 
     def test_process_message( self ):
 
+        relay = self.FakeRelay()
         server_args_noauth = self.server_args.copy()
+        server_args_noauth['relay'] = relay
         del server_args_noauth['authrequired']
         del server_args_noauth['authmodule']
 
@@ -79,15 +102,12 @@ class TestServer( unittest.TestCase ):
         msg_from = msg['From']
         msg_to = msg['To']
 
-        with create_test_server() as test_server:
-            with create_server(
-            test_server.smtp_listen, server_args_noauth ):
-                with SMTPClient(
-                'localhost',
-                int( server_args_noauth['listenport'] ) ) as smtp:
-                    smtp.sendmail(
-                        msg['From'], msg['To'], msg.as_string() )
+        with self.create_server( server_args_noauth ):
+            with SMTPClient(
+            'localhost',
+            int( server_args_noauth['listenport'] ) ) as smtp:
+                smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
 
-            self.assertIsNotNone( test_server.last_msg )
-            self.assertEqual( test_server.last_msg['To'], msg_to )
-            self.assertEqual( test_server.last_msg['From'], msg_from )
+        self.assertIsNotNone( relay.last_msg )
+        self.assertEqual( relay.last_msg['To'], msg_to )
+        self.assertEqual( relay.last_msg['From'], msg_from )

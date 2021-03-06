@@ -4,7 +4,9 @@ import os
 import argparse
 import configparser
 
-from .server import SMTPuttServer
+from smtputt.server import SMTPuttServer
+from smtputt.fixer import SMTPuttFixer
+from smtputt.relay import SMTPuttRelay
 
 def main():
 
@@ -25,9 +27,16 @@ def main():
     config = configparser.ConfigParser()
     config.read( args.config )
 
-    cfg_dict = dict( config.items( 'forwarder' ) )
+    relay_cfg = dict( config.items( 'forwarder' ) )
+    relay = SMTPuttRelay( **kwargs )
+    fixer_cfg = dict( config.items( 'fixer' ) )
+    fixer = SMTPuttFixer( **fixer_cfg )
 
-    cache = SMTPuttServer( **cfg_dict )
+    server_cfg = dict( config.items( 'server' ) )
+    server_cfg['relay'] = relay
+    server_cfg['fixer'] = fixer
+    
+    cache = SMTPuttServer( **server_cfg )
     cache_thread = cache.serve_thread()
     cache_thread.join()
 

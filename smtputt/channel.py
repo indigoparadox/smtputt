@@ -26,7 +26,9 @@ class SMTPuttChannel( SMTPChannel ):
         self._log_pfx = addr
         self.received_lines : list
 
-        super().__init__( server, conn, addr, *args, **kwargs )
+        # These are only used for LOGIN.
+        self._auth_login_stage = SMTPuttAuthStatus.AUTH_NONE
+        self._auth_login_user = None
 
         self.auth_required = \
             ('authrequired' in server.kwargs and \
@@ -36,11 +38,9 @@ class SMTPuttChannel( SMTPChannel ):
             if 'authmodule' in server.kwargs else None
         assert( self.auth_class or not self.auth_required )
 
-        # These are only used for LOGIN.
-        self._auth_login_stage = SMTPuttAuthStatus.AUTH_NONE
-        self._auth_login_user = None
-
         self.kwargs = server.kwargs
+
+        super().__init__( server, conn, addr, *args, **kwargs )
 
     def SMTP_QUIT( self, arg: str ):
         self.push( '221 Goodbye' )

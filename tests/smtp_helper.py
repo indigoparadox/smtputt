@@ -10,22 +10,6 @@ from contextlib import contextmanager
 
 from smtputt.server import SMTPuttServer
 
-@contextmanager
-def create_server( test_server_port, server_args ):
-    server_args['remoteport'] = test_server_port
-    server = None
-    while not server:
-        server_args['listenport'] = str( random.randrange( 40000, 50000 ) )
-        try:
-            server = SMTPuttServer( **server_args )
-        except OSError:
-            # Port in use.
-            pass
-    server.serve_thread( daemonize=True )
-    try:
-        yield server
-    finally:
-        server.close()
         
 @contextmanager
 def create_test_server():
