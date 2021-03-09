@@ -13,7 +13,6 @@ from unittest.mock import patch, Mock
 from smtplib import SMTP as SMTPClient, SMTPAuthenticationError, SMTPResponseException
 
 from faker import Faker
-from typing_extensions import final
 
 sys.path.append( os.path.dirname( __file__ ) )
 

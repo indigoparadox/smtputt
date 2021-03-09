@@ -1,5 +1,7 @@
 # SMTPutt
 
+![Tests](https://github.com/indigoparadox/smtputt/actions/workflows/tests.yaml/badge.svg)
+
 ## Installation
 
 ### Linux/*BSD
