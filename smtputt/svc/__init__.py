@@ -18,7 +18,7 @@ try:
 except ImportError:
     pass
 
-from smtputt import load_config
+from smtputt.config import load_config
 from smtputt.server import SMTPuttServer
 
 CONFIG_PATH = os.path.join( os.path.dirname( __file__ ), 'smtputt.ini' )
