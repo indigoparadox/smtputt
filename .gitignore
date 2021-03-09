@@ -1,4 +1,8 @@
 env
+build
+dist
+*.pyc
+*.egg-info
 config.json
 __pycache__
 smtputt.ini

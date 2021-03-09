@@ -6,15 +6,19 @@ import email
 import email.message
 import os
 import sys
+import shutil
+import tempfile
 from contextlib import contextmanager
 from unittest.mock import patch, Mock
 from smtplib import SMTP as SMTPClient, SMTPAuthenticationError, SMTPResponseException
 
 from faker import Faker
+from typing_extensions import final
 
 sys.path.append( os.path.dirname( __file__ ) )
 
 from fake_smtp import FakeSMTP
+import smtputt.config
 import smtputt.server
 from smtputt.channel import SMTPuttAuthStatus
 
@@ -87,6 +91,22 @@ class TestServer( unittest.TestCase ):
                     self.server.process_message(
                         peer, mailfrom, rcpttos, data, **kwargs ) )
             yield mock_server
+
+    def test_create_config( self ):
+        logging.getLogger( 'config' ).setLevel( logging.DEBUG )
+        temp_dir_path = tempfile.mkdtemp()
+        smtputt.config.sys = Mock()
+
+        config_paths = [
+            os.path.join( temp_dir_path, 'smtputt.ini' )
+        ]
+
+        try:
+            smtputt.config.load_or_create_config( True, config_paths )
+            smtputt.config.sys.exit.assert_called_with( 1 )
+            self.assertTrue( os.path.exists( config_paths[0] ) )
+        finally:
+            shutil.rmtree( temp_dir_path )
 
     def test_auth( self ):
 

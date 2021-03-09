@@ -1,8 +1,0 @@
-[forwarder]
-remoteserver=
-remoteport=25
-remoteuser=
-remotepassword=
-listenhost=0.0.0.0
-listenport=25
-fromaddress=

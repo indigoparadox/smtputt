@@ -36,11 +36,11 @@ class SMTPuttServer( SMTPServer ):
 
         self.kwargs = kwargs
 
-        listen_tuple = (
+        self.listen_tuple = (
             kwargs['listenhost'] if 'listenhost' in kwargs else '0.0.0.0',
             int( kwargs['listenport'] ) if 'listenport' in kwargs else 25)
 
-        super().__init__( listen_tuple, None )
+        super().__init__( self.listen_tuple, None )
 
     def fix_message( self, peer, msg ):
         for module in self.fixer_modules:
@@ -48,6 +48,7 @@ class SMTPuttServer( SMTPServer ):
         return msg
 
     def serve_thread( self, daemonize=False ):
+        self.logger.info( 'starting server on %s...', self.listen_tuple )
         self.thread = Thread( target=asyncore.loop )
         self.thread.daemon = daemonize
         self.thread.start()

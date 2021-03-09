@@ -1,9 +1,8 @@
 
 import logging
-import os
 import argparse
-import configparser
 
+from smtputt.config import load_config, load_or_create_config
 from smtputt.server import SMTPuttServer
 
 def main():
@@ -11,9 +10,13 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument( '-c', '--config', action='store',
-        default=os.path.join( os.getcwd(), 'smtputt.ini' ) )
+        help='Specify a path to a configuration file to use.' )
 
-    parser.add_argument( '-v', '--verbose', action='store_true' )
+    parser.add_argument( '-n', '--create', action='store',
+        help='If a valid configuration is not found, copy an example config.' )
+
+    parser.add_argument( '-v', '--verbose', action='store_true',
+        help='Show debugging log messages.' )
 
     args = parser.parse_args()
 
@@ -22,17 +25,14 @@ def main():
         level = logging.DEBUG
     logging.basicConfig( level=level )
 
-    config = configparser.ConfigParser()
-    config.read( args.config )
+    server_cfg = None
+    module_cfgs = None
 
-    module_cfgs = {}
-    server_cfg = dict( config.items( 'server' ) )
-    for module in server_cfg['authmodules'].split( ',' ):
-        module_cfgs[module] = dict( config.items( module ) )
-    for module in server_cfg['relaymodules'].split( ',' ):
-        module_cfgs[module] = dict( config.items( module ) )
-    for module in server_cfg['fixermodules'].split( ',' ):
-        module_cfgs[module] = dict( config.items( module ) )
+    if args.config:
+        server_cfg, module_cfgs = load_config( args.config )
+
+    else:
+        server_cfg, module_cfgs = load_or_create_config( args.create )
 
     cache = SMTPuttServer( module_cfgs, **server_cfg )
     cache_thread = cache.serve_thread()
