@@ -7,21 +7,15 @@ authmodules=
 authrequired=false
 mynetworks=127.0.0.0/8
 
-[smtputt.authorizers.ldap]
-ldaphost=ldap.example.com
-ldapport=389
+[smtputt.authorization.ldap]
+ldapurl=ldap://ldap.example.com
 ldapdnformat=uid=%u,ou=people,dc=example,dc=com
-ldapssl=false
 
-[smtputt.authorizers.dictauth]
+[smtputt.authorization.dictauth]
 authdict=exampleuser1:examplepass1,exampleuser2:examplepass2
 
 [smtputt.relays.smtp]
-remoteserver=
-remoteport=25
-remoteuser=
-remotepassword=
-remotessl=false
+smtpurl=smtp://user:password@smtp.example.com
 
 [smtputt.relays.mqtt]
 mqttserver=

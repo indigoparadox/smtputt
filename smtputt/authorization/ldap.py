@@ -1,4 +1,6 @@
 
+from urllib.parse import urlparse
+
 import ldap3
 
 from . import SMTPuttAuthorizer, SMTPuttAuthResult
@@ -10,12 +12,14 @@ class SMTPuttLDAPAuthorizer( SMTPuttAuthorizer ):
 
         server_args = {}
 
-        server_args['host'] = kwargs['ldaphost']
-        if 'ldapport' in kwargs:
-            server_args['port'] = int( kwargs['ldapport'] )
+        ldap_url = urlparse( kwargs['ldapurl'] )
+
+        server_args['host'] = ldap_url.hostname
+        if ldap_url.port:
+            server_args['port'] = ldap_url.port
 
         self.dn_format = kwargs['ldapdnformat']
-        self.use_ssl = ('ldapssl' in kwargs and kwargs['ldapssl'])
+        self.use_ssl = ('ldaps' == ldap_url.scheme)
 
         self.server = ldap3.Server( **server_args )
 

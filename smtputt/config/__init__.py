@@ -11,16 +11,13 @@ CONFIGURATION_PATHS=[
 ]
 
 def load_config( config_path ):
-    config = configparser.ConfigParser()
+    config = configparser.RawConfigParser()
     config.read( config_path )
     module_cfgs = {}
     server_cfg = dict( config.items( 'server' ) )
-    for module in server_cfg['authmodules'].split( ',' ):
-        module_cfgs[module] = dict( config.items( module ) )
-    for module in server_cfg['relaymodules'].split( ',' ):
-        module_cfgs[module] = dict( config.items( module ) )
-    for module in server_cfg['fixermodules'].split( ',' ):
-        module_cfgs[module] = dict( config.items( module ) )
+    for section in config.sections():
+        if 'server' != section:
+            module_cfgs[section] = dict( config.items( section ) )
 
     return server_cfg, module_cfgs
 

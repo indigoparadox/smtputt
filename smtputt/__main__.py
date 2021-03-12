@@ -18,6 +18,11 @@ def main():
     parser.add_argument( '-v', '--verbose', action='store_true',
         help='Show debugging log messages.' )
 
+    parser.add_argument(
+        '-o', '--option', action='append', nargs=3,
+        metavar=('section', 'option', 'value'),
+        help='specify a manual override for the given option' )
+
     args = parser.parse_args()
 
     level = logging.INFO
@@ -33,6 +38,13 @@ def main():
 
     else:
         server_cfg, module_cfgs = load_or_create_config( args.create )
+
+    if args.option:
+        for section, option, value in args.option:
+            if 'server' == section:
+                server_cfg[option] = value
+            else:
+                module_cfgs[section][option] = value
 
     cache = SMTPuttServer( module_cfgs, **server_cfg )
     cache_thread = cache.serve_thread()

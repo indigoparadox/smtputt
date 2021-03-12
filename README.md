@@ -10,7 +10,7 @@ SMTPutt looks for its configuration first in ~smtputt/.smtputt.ini, then in /etc
 
 ### Windows (as a Service)
 
-Before the SMTPutt service may be used, the pywin32 module must be installed manually, and a valid configuration must exist in %site-packages%\\smtputt\\svc\\smtputt.ini (e.g. c:\python3\\site-packages\\smtputt\\svc\\smtputt.ini).
+Before the SMTPutt service may be used, the pywin32 module must be installed manually, and a valid configuration must exist in %site-packages%\\smtputt\\svc\\smtputt.ini (e.g. c:\\python3\\site-packages\\smtputt\\svc\\smtputt.ini).
 
 To install and configure pywin32 and SMTPutt:
 
@@ -64,13 +64,9 @@ This authorizer attempts to simply bind to an LDAP server provided with the cred
 
 #### Configuration
 
-* **ldaphost**
+* **ldapurl**
 
-  Hostname of the LDAP server to validate against.
-
-* **ldapport** (optional)
-
-  Port to connect to said LDAP server on.
+  A URL indicating the remote LDAP host to use in the form of ldap://ldap-server:port. To use TLS, replace "ldap://" with "ldaps://".
 
 * **ldapdnformat**
 
@@ -96,25 +92,9 @@ This authorizer compares the username and password to a static dictionary provid
 
 #### Configuration
 
-* **remoteserver**
+* **smtpurl**
 
-  Address of the relay server SMTPutt should forward received messages to.
-
-* **remoteport** (optional, default 25)
-
-  SMTP port on the remote server.
-
-* **remoteuser** (optional)
-
-  Username used to login to the remote server.
-
-* **remotepassword** (optional)
-
-  Password used to login to the remote server.
-
-* **remotessl** (optional, default false)
-
-  "true" if TLS should be used to login to the remote server, otherwise "false".
+  A URL indicating the remote SMTP relay host to use in the form of smtp://username:password@smtp-server:port. To use TLS, replace "smtp://" with "smtps://". If port is omitted, port 25 will be used automatically.
 
 ### smtputt.relays.mqtt
 

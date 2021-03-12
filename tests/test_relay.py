@@ -28,9 +28,7 @@ class TestRelay( unittest.TestCase ):
         msg.set_content( '\r\n' )
 
         relay_args = {
-            'remoteserver': 'localhost',
-            'remoteport': 25,
-            'remotessl': 'false'
+            'smtpurl': 'smtp://localhost:25'
         }
 
         with patch( 'smtplib.SMTP', autospec=True ) as mock_smtp:
@@ -49,9 +47,7 @@ class TestRelay( unittest.TestCase ):
         msg.add_header( 'From', 'smtputt@example.com' )
 
         relay_args = {
-            'remoteserver': 'localhost',
-            'remoteport': 25,
-            'remotessl': 'true'
+            'smtpurl': 'smtps://localhost:25'
         }
 
         with patch( 'smtplib.SMTP_SSL', autospec=True ) as mock_smtp:

@@ -21,9 +21,8 @@ class TestAuth( unittest.TestCase ):
 
         smtputt.authorization.ldap.ldap3 = mock_ldap
         args = {
-            'ldaphost': 'ldap.example.com',
-            'ldapdnformat': 'uid=%u,ou=binders,dc=example,dc=com',
-            'ldapssl': True
+            'ldapurl': 'ldaps://ldap.example.com',
+            'ldapdnformat': 'uid=%u,ou=binders,dc=example,dc=com'
         }
         auth = smtputt.authorization.ldap.SMTPuttLDAPAuthorizer( **args )
         res = auth.authorize( 'testuser1', 'testpass1' )
