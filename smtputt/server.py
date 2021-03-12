@@ -1,4 +1,5 @@
 
+from email.message import EmailMessage
 import logging
 import email
 import asyncore
@@ -42,9 +43,10 @@ class SMTPuttServer( SMTPServer ):
 
         super().__init__( self.listen_tuple, None )
 
-    def fix_message( self, peer, msg ):
+    def fix_message( self, peer, msg : EmailMessage ):
         for module in self.fixer_modules:
-            msg = module.process_email( peer, msg )
+            fixer = module.FIXER( **self.module_cfgs[module.__loader__.name] )
+            msg = fixer.process_email( peer, msg )
         return msg
 
     def serve_thread( self, daemonize=False ):

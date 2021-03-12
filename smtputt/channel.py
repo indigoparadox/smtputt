@@ -3,6 +3,7 @@ import logging
 import asyncore
 import re
 import base64
+import binascii
 from smtpd import SMTPChannel
 from enum import Enum
 
@@ -64,6 +65,10 @@ class SMTPuttChannel( SMTPChannel ):
 
     def smtp_AUTH( self, arg: str ):
 
+        if not arg:
+            self.push( '500 Error: bad syntax' )
+            return
+
         match = PATTERN_AUTH.match( arg )
 
         if not match:
@@ -74,13 +79,26 @@ class SMTPuttChannel( SMTPChannel ):
         method = groups[0]
         if 'PLAIN' == method.upper():
             user_pass = self.auth_parse_plain( groups[1] )
+            if len( user_pass ) < 2:
+                self.auth_reset()
+                self.push( '535 Authentication credentials invalid' )
+                return
             res = self.auth_validate_plain( *user_pass )
         elif 'LOGIN' == method.upper():
-            if 1 == len( groups ):
+            # Get rid of initial ''.
+            while 1 <= len( groups ) and '' == groups[0]:
+                groups.pop( 0 )
+            if 1 == len( groups ) or '' == groups[1]:
                 self.push( '334 VXNlcm5hbWU6' ) # "Username"
+                self._auth_login_stage = SMTPuttAuthStatus.AUTH_IN_PROGRESS
                 return
             user_pass = self.auth_parse_plain( groups[1] )
-            res = self.auth_validate_login( user_pass[0] )
+            if 1 <= len( user_pass ):
+                res = self.auth_validate_login( user_pass[0] )
+            else:
+                self.auth_reset()
+                self.push( '535 Authentication credentials invalid' )
+                return
 
         # Decide what to do next.
         if res == SMTPuttAuthResult.AUTH_REJECTED:
@@ -91,18 +109,23 @@ class SMTPuttChannel( SMTPChannel ):
             self.auth_success()
         elif SMTPuttAuthResult.AUTH_FAILED == res:
             self.push( '454 Temporary authentication failure' )
-        elif SMTPuttAuthResult.AUTH_IN_PROGRESS:
+        elif SMTPuttAuthResult.AUTH_IN_PROGRESS == res:
             self.push( '334 UGFzc3dvcmQ6' ) # "Password"
 
     def auth_parse_plain( self, creds : str ):
-        user_pass = base64.b64decode( creds ).decode( 'utf-8' )
+        user_pass = ''
+        try:
+            user_pass = base64.b64decode( creds ).decode( 'utf-8' )
+        except binascii.Error:
+            user_pass = creds
         user_pass = user_pass.split( '\0' )
-        while '' == user_pass[0]:
+        # Get rid of initial ''.
+        while 1 <= len( user_pass ) and '' == user_pass[0]:
             user_pass.pop( 0 )
         return user_pass
 
     def auth_validate_login( self, cred : str ):
-        if SMTPuttAuthStatus.AUTH_NONE == self._auth_login_stage:
+        if not self._auth_login_user:
             # First step.
             self._auth_login_user = cred
             self._auth_login_stage = SMTPuttAuthStatus.AUTH_IN_PROGRESS
@@ -150,7 +173,8 @@ class SMTPuttChannel( SMTPChannel ):
 
     def found_terminator( self ):
         if self.smtp_state != self.COMMAND:
-            return super().found_terminator()
+            super().found_terminator()
+            return
 
         line = self._emptystring.join( self.received_lines )
         self.logger.debug( '%s rcv: %s', self._log_pfx, line )
