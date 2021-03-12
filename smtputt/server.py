@@ -77,5 +77,9 @@ class SMTPuttServer( SMTPServer ):
         msg = self.fix_message( peer, msg )
 
         for module in self.relay_modules:
-            relay = module.RELAY( **self.module_cfgs[module.__loader__.name] )
-            relay.send_email( msg )
+            try:
+                relay = module.RELAY( **self.module_cfgs[module.__loader__.name] )
+                relay.send_email( msg )
+            except Exception as exc:
+                self.logger.error( 'while relaying: %s', exc )
+                return '421 The service is unavailable'

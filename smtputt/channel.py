@@ -134,7 +134,12 @@ class SMTPuttChannel( SMTPChannel ):
         elif SMTPuttAuthStatus.AUTH_IN_PROGRESS == self._auth_login_stage:
             # Second step.
             for authorizer in self.auth_classes:
-                res = authorizer.authorize( self._auth_login_user, cred )
+                res = None
+                try:
+                    res = authorizer.authorize( self._auth_login_user, cred )
+                except Exception as exc:
+                    self.logger.error( 'while authorizing: %s', exc )
+                    res = SMTPuttAuthResult.AUTH_FAILED
                 self.auth_reset()
                 if SMTPuttAuthResult.AUTH_REJECTED != res:
                     # Break immediately on success or technical issue.
@@ -144,7 +149,11 @@ class SMTPuttChannel( SMTPChannel ):
     def auth_validate_plain( self, user : str, passwd : str ) \
     -> SMTPuttAuthResult:
         for authorizer in self.auth_classes:
-            res = authorizer.authorize( user, passwd )
+            try:
+                res = authorizer.authorize( user, passwd )
+            except Exception as exc:
+                self.logger.error( 'while authorizing: %s', exc )
+                res = SMTPuttAuthResult.AUTH_FAILED
             self.auth_reset()
             if SMTPuttAuthResult.AUTH_REJECTED != res:
                 # Break immediately on success or technical issue.

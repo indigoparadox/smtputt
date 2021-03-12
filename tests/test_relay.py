@@ -50,8 +50,8 @@ class TestRelay( unittest.TestCase ):
             'smtpurl': 'smtps://localhost:25'
         }
 
-        with patch( 'smtplib.SMTP_SSL', autospec=True ) as mock_smtp:
-            smtputt.relays.smtp.SMTP_SSL = mock_smtp
+        with patch( 'smtplib.SMTP', autospec=True ) as mock_smtp:
+            smtputt.relays.smtp.SMTP = mock_smtp
             relay = smtputt.relays.smtp.SMTPuttSMTPRelay( **relay_args )
             relay.send_email( msg )
             mock_smtp.assert_called_with( 'localhost', 25 )

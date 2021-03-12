@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from contextlib import contextmanager
 from unittest.mock import patch, Mock
-from smtplib import SMTP as SMTPClient, SMTPAuthenticationError, SMTPResponseException
+from smtplib import SMTP as SMTPClient, SMTPAuthenticationError, SMTPDataError, SMTPResponseException
 
 from faker import Faker
 
@@ -201,3 +201,40 @@ class TestServer( unittest.TestCase ):
         self.assertIsNotNone( self.relay.last_msg )
         self.assertEqual( self.relay.last_msg['To'], msg_to )
         self.assertEqual( self.relay.last_msg['From'], msg_from )
+
+    def test_relay_crash( self ):
+        self.relay.send_email = Mock( side_effect=ConnectionError )
+
+        msg = self.fake.email_msg()
+
+        with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            channel = self.server.channels[0]
+            self.assertEqual(
+                channel._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_NONE )
+            smtp.login( 'testuser1', 'testpass1' )
+            self.assertEqual(
+                channel._auth_login_stage,
+                SMTPuttAuthStatus.AUTH_SUCCESSFUL )
+
+            # Replace the channel's server for testing.
+            with self.create_mock_server() as mock_server:
+                channel.smtp_server = mock_server
+                with self.assertRaises( SMTPDataError ) as exc:
+                    smtp.sendmail( msg['From'], msg['To'], msg.as_string() )
+                    self.assertEqual( 421, exc.exception.smtp_code )
+
+    def test_auth_crash( self ):
+
+        msg = self.fake.email_msg()
+
+        with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            channel = self.server.channels[0]
+            channel.auth_classes[0].authorize = \
+                Mock( side_effect=ConnectionError( 'this is expected' ) )
+            with self.assertRaises( SMTPAuthenticationError ) as exc:
+                smtp.login( 'testuser1', 'testpass1' )
+
+                self.assertEqual( 454, exc.exception.smtp_code )
+
+            # Should have failed by here.
