@@ -4,6 +4,7 @@ import asyncore
 import re
 import base64
 import binascii
+import time
 from smtpd import SMTPChannel
 from enum import Enum
 
@@ -178,7 +179,14 @@ class SMTPuttChannel( SMTPChannel ):
 
         self.logger.debug( '%s: push: %s', self._log_pfx, msg )
 
-        super().push( msg )
+        # Fix for deque index out of range in tests (provisional).
+        time.sleep( 0.01 )
+
+        try:
+            super().push( msg )
+        except IndexError as exc:
+            self.logger.error( '%s while pushing "%s": %s',
+                type( exc ), msg, exc )
 
     def found_terminator( self ):
         if self.smtp_state != self.COMMAND:

@@ -32,12 +32,10 @@ class SMTPuttServer( SMTPServer ):
         self.relay_modules = [import_module( m ) \
             for m in kwargs['relaymodules'].split( ',' )] if \
             'relaymodules' in kwargs else []
-        self.networks = kwargs['listennetworks'].split( ',' ) \
-            if 'listennetworks' in kwargs else ['127.0.0.1/32', '::1/128']
         self.mynetworks = \
             [tuple( n.split( '/' ) ) for \
                 n in kwargs['mynetworks'].split( ',' )] if \
-            'mynetworks' in kwargs else [('127.0.0.0', '8')]
+            'mynetworks' in kwargs else [('127.0.0.0', '8'), ('::1', '128')]
         self.channels : 'list[SMTPuttChannel]'
         self.channels = []
 
