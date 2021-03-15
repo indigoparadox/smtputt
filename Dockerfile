@@ -18,4 +18,4 @@ ENV SMTPUTT_CONFIG_PATH "/config/smtputt.ini"
 
 EXPOSE 25
 
-CMD ["python3", "-m", "smtputt", "-c", ${SMTPUTT_CONFIG_PATH}]
+CMD python3 -m smtputt -c ${SMTPUTT_CONFIG_PATH}
