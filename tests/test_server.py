@@ -261,10 +261,18 @@ class TestServer( unittest.TestCase ):
         self.server.mynetworks = [
             ('127.0.0.0', '8'),
             ('192.168.10.0', '24'),
-            ('10.10.0.0', '16')
+            ('10.10.0.0', '16'),
+            ('::1', '128'),
+            ('2001:db8:3333:5555::', '56')
         ]
+
+        self.server.logger.setLevel( logging.DEBUG )
+        self.server.logger.addHandler( logging.StreamHandler( sys.stdout ) )
 
         self.assertTrue( self.server.is_my_network( '192.168.10.5' ) )
         self.assertFalse( self.server.is_my_network( '192.168.18.5' ) )
         self.assertTrue( self.server.is_my_network( '10.10.12.14' ) )
         self.assertFalse( self.server.is_my_network( '65.83.128.3' ) )
+        self.assertTrue( self.server.is_my_network( '::1' ) )
+        self.assertFalse( self.server.is_my_network( '2001:db8:3333:4444:5555:6666:7777:8888' ) )
+        self.assertTrue( self.server.is_my_network( '2001:db8:3333:5555:4444:6666:7777:8888' ) )

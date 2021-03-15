@@ -33,7 +33,7 @@ class SMTPuttServer( SMTPServer ):
             for m in kwargs['relaymodules'].split( ',' )] if \
             'relaymodules' in kwargs else []
         self.networks = kwargs['listennetworks'].split( ',' ) \
-            if 'listennetworks' in kwargs else ['127.0.0.1/32']
+            if 'listennetworks' in kwargs else ['127.0.0.1/32', '::1/128']
         self.mynetworks = \
             [tuple( n.split( '/' ) ) for \
                 n in kwargs['mynetworks'].split( ',' )] if \
@@ -75,24 +75,52 @@ class SMTPuttServer( SMTPServer ):
 
     def is_my_network( self, peer_ip_str : str ):
 
-        def ip_str_to_long( ip_str : str ):
-            #print( ip_str )
-            ip_buf = socket.inet_aton( ip_str )
-            return struct.unpack( '!L', ip_buf )[0]
+        max_bits = 32
+        ip_str_to_long = \
+            lambda ip_str: struct.unpack( '!L', socket.inet_aton( ip_str ) )[0]
+        if ':' in peer_ip_str:
+            # IPv6 detected.
+            max_bits = 128
+            ip_str_to_long = \
+                lambda ip_str: struct.unpack( '>QQ',
+                    socket.inet_pton( socket.AF_INET6, ip_str ) )[0] << 64 | \
+                struct.unpack( '>QQ',
+                    socket.inet_pton( socket.AF_INET6, ip_str ) )[1]
 
         peer_ip_num = ip_str_to_long( peer_ip_str )
 
+        self.logger.debug( 'for ip: %s', peer_ip_str )
+
         for network in self.mynetworks:
-            #print( 'peer   : {0:b}'.format( peer_ip_num ) )
-            net_mask = ((2 << int( network[1] ) - 1) - 1) << (32 - int( network[1] ))
-            #print( 'mask   : {0:b}'.format( net_mask ) )
-            net_num = ip_str_to_long( network[0] ) & \
-                net_mask
-            #print( 'net    : {0:b}'.format( net_num ) )
-            peer_net = peer_ip_num & net_num
-            #print( 'peernet: {0:b}'.format( peer_net ) )
-            if peer_net == net_num:
-                #print( 'true' )
+
+            if 32 == max_bits and ':' in network[0]:
+                # Peer address is IPv4 and this network is IPv6.
+                continue
+            elif 128 == max_bits and ':' not in network[0]:
+                # Peer address is IPv6 and this network is IPv4.
+                continue
+
+            self.logger.debug( 'testnet : %s', network[0] )
+
+            self.logger.debug( 'peernum : {0:b}'.format( peer_ip_num ) )
+
+            # Get the subnet mask for testing network.
+            test_mask = ((2 << int( network[1] ) - 1) - 1)
+            fill_bits = (max_bits - int( network[1] ))
+            test_mask <<= fill_bits
+            self.logger.debug( 'testmask: {0:b}'.format( test_mask ) )
+
+            assert( 0 < test_mask )
+
+            # Get the masked bits for testing network.
+            test_ip_num = ip_str_to_long( network[0] )
+            test_ip_num &= test_mask
+            self.logger.debug( 'testbits: {0:b}'.format( test_ip_num ) )
+
+            peer_net = peer_ip_num & test_mask
+            self.logger.debug( 'peernet : {0:b}'.format( peer_net ) )
+            if peer_net == test_ip_num:
+                self.logger.debug( 'true' )
                 return True
 
         return False

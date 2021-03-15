@@ -11,22 +11,11 @@ WORKDIR /app/
 RUN pip3 install --upgrade pip
 RUN pip3 install .
 
-COPY "smtputt/config/smtputt.ini.dist" "/etc/smtputt.ini"
-
 # Remove temporarily installed files.
 RUN apk del .build-deps
 
-ENV SERVER_AUTHMODULES ""
-ENV SERVER_AUTHREQUIRED "false"
-ENV AUTH_LDAP_URL ""
-ENV AUTH_LDAP_DNFORMAT ""
-ENV RELAY_SMTP_URL ""
+ENV SMTPUTT_CONFIG_PATH "/config/smtputt.ini"
 
 EXPOSE 25
 
-CMD python3 -m smtputt \
-    -o server authmodules ${SERVER_AUTHMODULES} \
-    -o server authrequired ${SERVER_AUTHREQUIRED} \
-    -o smtputt.authorization.ldap ldapurl ${AUTH_LDAP_URL} \
-    -o smtputt.authorization.ldap ldapdnformat ${AUTH_LDAP_DNFORMAT} \
-    -o smtputt.relays.smtp smtpurl ${RELAY_SMTP_URL}
+CMD ["python3", "-m", "smtputt", "-c", ${SMTPUTT_CONFIG_PATH}]
