@@ -2,6 +2,8 @@
 from email.message import EmailMessage
 import logging
 import email
+import struct
+import socket
 import asyncore
 from smtpd import SMTPServer
 from threading import Thread
@@ -32,6 +34,10 @@ class SMTPuttServer( SMTPServer ):
             'relaymodules' in kwargs else []
         self.networks = kwargs['listennetworks'].split( ',' ) \
             if 'listennetworks' in kwargs else ['127.0.0.1/32']
+        self.mynetworks = \
+            [tuple( n.split( '/' ) ) for \
+                n in kwargs['mynetworks'].split( ',' )] if \
+            'mynetworks' in kwargs else [('127.0.0.0', '8')]
         self.channels : 'list[SMTPuttChannel]'
         self.channels = []
 
@@ -67,7 +73,38 @@ class SMTPuttServer( SMTPServer ):
         print( 'close' )
         super().handle_close()
 
+    def is_my_network( self, peer_ip_str : str ):
+
+        def ip_str_to_long( ip_str : str ):
+            print( ip_str )
+            ip_buf = socket.inet_aton( ip_str )
+            return struct.unpack( '!L', ip_buf )[0]
+
+        peer_ip_num = ip_str_to_long( peer_ip_str )
+
+        for network in self.mynetworks:
+            print( 'peer   : {0:b}'.format( peer_ip_num ) )
+            net_mask = ((2 << int( network[1] ) - 1) - 1) << (32 - int( network[1] ))
+            print( 'mask   : {0:b}'.format( net_mask ) )
+            net_num = ip_str_to_long( network[0] ) & \
+                net_mask
+            print( 'net    : {0:b}'.format( net_num ) )
+            peer_net = peer_ip_num & net_num
+            print( 'peernet: {0:b}'.format( peer_net ) )
+            if peer_net == net_num:
+                print( 'true' )
+                return True
+
+        return False
+
     def process_message( self, peer, mailfrom, rcpttos, data, **kwargs ):
+
+        assert( tuple == type( peer ) )
+        assert( str == type( peer[0] ) )
+
+        if not self.is_my_network( peer[0] ):
+            self.logger.warning( 'rejected unlisted network for peer: %s', peer )
+            return '554 Relay access denied'
 
         self.logger.info( 'connection established by %s', peer )
         msg = email.message_from_string( data.decode( 'utf-8' ) )

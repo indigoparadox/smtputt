@@ -7,6 +7,7 @@ import email.message
 import os
 import sys
 import shutil
+import time
 import tempfile
 from contextlib import contextmanager
 from unittest.mock import patch, Mock
@@ -136,6 +137,10 @@ class TestServer( unittest.TestCase ):
 
         with self.assertRaises( SMTPResponseException ):
             with SMTPClient( 'localhost', self.listen_port ) as smtp:
+                attempt = 0
+                while 0 >= len( self.server.channels ) and attempt < 5:
+                    time.sleep( 1 )
+                    attempt += 1
                 channel = self.server.channels[0]
                 self.assertEqual(
                     channel._auth_login_stage,
@@ -162,6 +167,10 @@ class TestServer( unittest.TestCase ):
 
         with self.assertRaises( SMTPResponseException ):
             with SMTPClient( 'localhost', self.listen_port ) as smtp:
+                attempt = 0
+                while 0 >= len( self.server.channels ) and attempt < 5:
+                    time.sleep( 1 )
+                    attempt += 1
                 channel = self.server.channels[0]
                 self.assertEqual(
                     channel._auth_login_stage,
@@ -208,6 +217,10 @@ class TestServer( unittest.TestCase ):
         msg = self.fake.email_msg()
 
         with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            attempt = 0
+            while 0 >= len( self.server.channels ) and attempt < 5:
+                time.sleep( 1 )
+                attempt += 1
             channel = self.server.channels[0]
             self.assertEqual(
                 channel._auth_login_stage,
@@ -229,6 +242,10 @@ class TestServer( unittest.TestCase ):
         msg = self.fake.email_msg()
 
         with SMTPClient( 'localhost', self.listen_port ) as smtp:
+            attempt = 0
+            while 0 >= len( self.server.channels ) and attempt < 5:
+                time.sleep( 1 )
+                attempt += 1
             channel = self.server.channels[0]
             channel.auth_classes[0].authorize = \
                 Mock( side_effect=ConnectionError( 'this is expected' ) )
@@ -238,3 +255,16 @@ class TestServer( unittest.TestCase ):
                 self.assertEqual( 454, exc.exception.smtp_code )
 
             # Should have failed by here.
+
+    def test_is_my_network( self ):
+
+        self.server.mynetworks = [
+            ('127.0.0.0', '8'),
+            ('192.168.10.0', '24'),
+            ('10.10.0.0', '16')
+        ]
+
+        self.assertTrue( self.server.is_my_network( '192.168.10.5' ) )
+        self.assertFalse( self.server.is_my_network( '192.168.18.5' ) )
+        self.assertTrue( self.server.is_my_network( '10.10.12.14' ) )
+        self.assertFalse( self.server.is_my_network( '65.83.128.3' ) )
