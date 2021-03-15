@@ -70,29 +70,29 @@ class SMTPuttServer( SMTPServer ):
         self.channels.append( channel )
 
     def handle_close( self ):
-        print( 'close' )
+        #print( 'close' )
         super().handle_close()
 
     def is_my_network( self, peer_ip_str : str ):
 
         def ip_str_to_long( ip_str : str ):
-            print( ip_str )
+            #print( ip_str )
             ip_buf = socket.inet_aton( ip_str )
             return struct.unpack( '!L', ip_buf )[0]
 
         peer_ip_num = ip_str_to_long( peer_ip_str )
 
         for network in self.mynetworks:
-            print( 'peer   : {0:b}'.format( peer_ip_num ) )
+            #print( 'peer   : {0:b}'.format( peer_ip_num ) )
             net_mask = ((2 << int( network[1] ) - 1) - 1) << (32 - int( network[1] ))
-            print( 'mask   : {0:b}'.format( net_mask ) )
+            #print( 'mask   : {0:b}'.format( net_mask ) )
             net_num = ip_str_to_long( network[0] ) & \
                 net_mask
-            print( 'net    : {0:b}'.format( net_num ) )
+            #print( 'net    : {0:b}'.format( net_num ) )
             peer_net = peer_ip_num & net_num
-            print( 'peernet: {0:b}'.format( peer_net ) )
+            #print( 'peernet: {0:b}'.format( peer_net ) )
             if peer_net == net_num:
-                print( 'true' )
+                #print( 'true' )
                 return True
 
         return False
